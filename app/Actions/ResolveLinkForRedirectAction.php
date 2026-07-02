@@ -9,10 +9,12 @@ class ResolveLinkForRedirectAction
 {
     public function execute(string $code): Link
     {
-        return Cache::remember(
+        $linkId = Cache::remember(
             Link::redirectCacheKey($code),
             now()->addHour(),
-            fn (): Link => Link::query()->where('code', $code)->firstOrFail(),
+            fn (): int => Link::query()->where('code', $code)->firstOrFail()->id,
         );
+
+        return Link::query()->findOrFail($linkId);
     }
 }
