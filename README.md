@@ -8,8 +8,12 @@
 - Laravel 13
 - Filament v3 (личный кабинет: аутентификация, регистрация, CRUD ссылок, статистика)
 - SQLite (по умолчанию, можно заменить на MySQL/PostgreSQL в `.env`)
+- Очереди Laravel (асинхронная запись переходов)
+- Simple QrCode (генерация QR-кодов)
 
 ## Возможности
+
+### Базовые (по ТЗ)
 
 - **Регистрация и вход** — страницы `/admin/register` и `/admin/login` (встроенные в Filament).
 - **Создание коротких ссылок** — пользователь указывает оригинальный URL и получает короткую ссылку вида `https://yourdomain.test/abc123`. Код генерируется автоматически (6 символов) или задаётся вручную.
@@ -20,10 +24,19 @@
   - статистика по каждой ссылке: общее количество кликов и список переходов с IP-адресом и датой/временем;
   - дашборд со сводкой: всего ссылок, всего переходов, переходов за сегодня.
 
+### Дополнительно (улучшения)
+
+- **Асинхронная запись кликов** — переход фиксируется через `RecordClickJob` в очереди, редирект отдаётся сразу, без ожидания записи в БД.
+- **График статистики** — на странице ссылки отображается график переходов за последние 30 дней.
+- **QR-код** — кнопка «QR-код» открывает SVG с QR для короткой ссылки (`/links/{id}/qr`).
+- **Экспорт CSV** — выгрузка всех переходов по ссылке из таблицы статистики.
+- **Actions + Policy + Form Request** — бизнес-логика вынесена в Action-классы, доступ к ссылкам контролируется через `LinkPolicy`, валидация — через `StoreLinkRequest`.
+- **Оптимизация** — кэширование поиска ссылки при редиректе, индекс `(link_id, clicked_at)` для быстрой статистики, зарезервированные системные коды (`admin`, `login`, `api` и др.).
+
 ## Установка и запуск
 
 ```bash
-git clone <repo-url> url-shortener
+git clone https://github.com/scalevillain13/laravel-url-shortener url-shortener
 cd url-shortener
 
 composer install
@@ -31,21 +44,29 @@ composer install
 cp .env.example .env
 php artisan key:generate
 
-# SQLite по умолчанию — просто создать файл БД
-touch database/database.sqlite   # Windows: type nul > database\database.sqlite
+# SQLite по умолчанию
+type nul > database\database.sqlite   # Linux/macOS: touch database/database.sqlite
 
 php artisan migrate
+
+# Для асинхронной записи кликов (рекомендуется в production)
+# QUEUE_CONNECTION=database в .env
+php artisan queue:work
 
 php artisan serve
 ```
 
 Приложение будет доступно на `http://127.0.0.1:8000`:
 
-- `http://127.0.0.1:8000/admin/register` — регистрация;
-- `http://127.0.0.1:8000/admin` — личный кабинет;
-- `http://127.0.0.1:8000/{code}` — переход по короткой ссылке.
+| URL | Описание |
+|---|---|
+| `/admin/register` | Регистрация |
+| `/admin` | Личный кабинет |
+| `/admin/links` | Список ссылок |
+| `/{code}` | Переход по короткой ссылке |
+| `/links/{id}/qr` | QR-код (только для владельца) |
 
-Фронтенд-сборка (npm) не требуется: Filament использует уже скомпилированные ассеты.
+> В режиме разработки можно оставить `QUEUE_CONNECTION=sync` — тогда клики пишутся сразу, без отдельного воркера.
 
 ## Тесты
 
@@ -53,24 +74,40 @@ php artisan serve
 php artisan test
 ```
 
-Покрыто тестами (14 тестов):
+Покрыто:
 
-- редирект короткой ссылки на оригинальный URL;
-- запись перехода (IP, дата/время), подсчёт кликов;
-- 404 для несуществующего кода;
-- генерация уникальных кодов;
-- каскадное удаление статистики при удалении ссылки;
-- доступ в кабинет только после входа, страница регистрации;
-- создание ссылки через форму Filament с автогенерацией кода;
-- изоляция данных: пользователь видит только свои ссылки.
+- редирект и запись кликов;
+- асинхронная постановка задачи в очередь;
+- кэширование и инвалидация при обновлении ссылки;
+- Policy: доступ к QR только владельцу;
+- экспорт CSV;
+- изоляция данных пользователей;
+- создание ссылок через Filament.
+
+## Архитектура
+
+| Компонент | Назначение |
+|---|---|
+| `CreateShortLinkAction` | Создание короткой ссылки |
+| `RecordClickAction` | Запись перехода в БД |
+| `ResolveLinkForRedirectAction` | Поиск ссылки с кэшем |
+| `ExportClicksToCsvAction` | Экспорт статистики |
+| `RecordClickJob` | Асинхронная запись клика |
+| `StoreLinkRequest` | Валидация URL и кода |
+| `LinkPolicy` | Права доступа к ссылкам |
+| `LinkClicksChart` | График переходов в Filament |
+| `LinkQrCodeController` | Генерация QR-кода |
 
 ## Структура
 
-| Компонент | Файл |
-|---|---|
-| Модели | `app/Models/Link.php`, `app/Models/Click.php` |
-| Редирект + запись клика | `app/Http/Controllers/RedirectController.php`, `routes/web.php` |
-| Ресурс личного кабинета | `app/Filament/Resources/LinkResource.php` |
-| Статистика переходов | `app/Filament/Resources/LinkResource/RelationManagers/ClicksRelationManager.php` |
-| Виджет дашборда | `app/Filament/Widgets/LinkStatsOverview.php` |
-| Миграции | `database/migrations/2026_07_02_000001_create_links_table.php`, `..._000002_create_clicks_table.php` |
+```
+app/
+├── Actions/          # Бизнес-логика
+├── Filament/         # Личный кабинет (Filament v3)
+├── Http/
+│   ├── Controllers/  # Редирект, QR-код
+│   └── Requests/     # Form Request
+├── Jobs/             # Очередь кликов
+├── Models/           # Link, Click, User
+└── Policies/         # LinkPolicy
+```

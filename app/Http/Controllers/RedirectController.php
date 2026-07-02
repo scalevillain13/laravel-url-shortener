@@ -2,21 +2,26 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Link;
+use App\Actions\ResolveLinkForRedirectAction;
+use App\Jobs\RecordClickJob;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class RedirectController extends Controller
 {
-    public function __invoke(Request $request, string $code): RedirectResponse
-    {
-        $link = Link::where('code', $code)->firstOrFail();
+    public function __invoke(
+        Request $request,
+        string $code,
+        ResolveLinkForRedirectAction $resolveLink,
+    ): RedirectResponse {
+        $link = $resolveLink->execute($code);
 
-        $link->clicks()->create([
-            'ip_address' => $request->ip(),
-            'user_agent' => (string) $request->userAgent(),
-            'clicked_at' => now(),
-        ]);
+        RecordClickJob::dispatch(
+            linkId: $link->id,
+            ipAddress: $request->ip() ?? '0.0.0.0',
+            userAgent: $request->userAgent(),
+            clickedAt: now()->toIso8601String(),
+        );
 
         return redirect()->away($link->original_url);
     }

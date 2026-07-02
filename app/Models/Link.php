@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use Database\Factories\LinkFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class Link extends Model
 {
-    /** @use HasFactory<\Database\Factories\LinkFactory> */
+    /** @use HasFactory<LinkFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -18,6 +20,38 @@ class Link extends Model
         'original_url',
         'code',
     ];
+
+    protected static function booted(): void
+    {
+        static::saved(function (Link $link): void {
+            Cache::forget(self::redirectCacheKey($link->code));
+        });
+
+        static::deleted(function (Link $link): void {
+            Cache::forget(self::redirectCacheKey($link->code));
+        });
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function reservedCodes(): array
+    {
+        return [
+            'admin',
+            'api',
+            'filament',
+            'links',
+            'livewire',
+            'login',
+            'register',
+        ];
+    }
+
+    public static function redirectCacheKey(string $code): string
+    {
+        return 'link:redirect:'.$code;
+    }
 
     public function user(): BelongsTo
     {

@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\LinkResource\Pages;
 use App\Filament\Resources\LinkResource\RelationManagers\ClicksRelationManager;
+use App\Http\Requests\StoreLinkRequest;
 use App\Models\Link;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -54,6 +55,7 @@ class LinkResource extends Resource
                     ->alphaNum()
                     ->minLength(3)
                     ->maxLength(16)
+                    ->rules(fn (): array => (new StoreLinkRequest)->rules()['code'])
                     ->unique(ignoreRecord: true)
                     ->columnSpanFull(),
             ]);
@@ -89,6 +91,11 @@ class LinkResource extends Resource
             ->defaultSort('created_at', 'desc')
             ->actions([
                 Tables\Actions\ViewAction::make()->label('Статистика'),
+                Tables\Actions\Action::make('qrCode')
+                    ->label('QR')
+                    ->icon('heroicon-o-qr-code')
+                    ->url(fn (Link $record): string => route('links.qr', $record))
+                    ->openUrlInNewTab(),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
