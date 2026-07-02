@@ -119,6 +119,7 @@ Content-Type: application/json
 |---|---|---|
 | GET | `/api/links` | Список ссылок (paginate) |
 | GET | `/api/links/{id}` | Ссылка + статистика + последние 50 кликов |
+| PATCH | `/api/links/{id}` | Обновить ссылку (URL, код, UTM, активность, срок) |
 | DELETE | `/api/links/{id}` | Удалить ссылку |
 
 ## Архитектурные решения
@@ -146,15 +147,17 @@ app/
 php artisan test
 ```
 
-**34 теста:** редирект, очередь, кэш, Policy, API, UTM, expiry, боты, HTTPS-валидация, Filament.
+**41 тест:** редирект, очередь, кэш, Policy, API (в т.ч. PATCH), rate limit, UTM, expiry, боты, HTTPS-валидация, Filament.
 
 ## Скриншоты
 
-> Добавьте в `docs/screenshots/`:
-> - `dashboard.png` — инфопанель Filament
-> - `links.png` — список ссылок
-> - `stats.png` — статистика переходов
-> - `landing.png` — публичный лендинг
+| Лендинг | Инфопанель |
+|---|---|
+| ![Лендинг](docs/screenshots/landing.png) | ![Инфопанель](docs/screenshots/dashboard.png) |
+
+| Мои ссылки | Статистика переходов |
+|---|---|
+| ![Мои ссылки](docs/screenshots/links.png) | ![Статистика](docs/screenshots/stats.png) |
 
 ## Переменные окружения
 
@@ -162,6 +165,8 @@ php artisan test
 |---|---|---|
 | `SHORTENER_REQUIRE_HTTPS` | `true` | Только HTTPS в оригинальных URL |
 | `SHORTENER_REDIRECT_RATE_LIMIT` | `60` | Редиректов в минуту с одного IP |
+| `SHORTENER_API_TOKEN_RATE_LIMIT` | `5` | Запросов токена `/api/tokens` в минуту с IP |
+| `SHORTENER_HOME_STORE_RATE_LIMIT` | `10` | Созданий ссылки на `/` в минуту с IP |
 | `SHORTENER_IGNORE_BOTS` | `true` | Не считать ботов |
 | `SHORTENER_GEOIP_ENABLED` | `true` | Геолокация по IP |
 

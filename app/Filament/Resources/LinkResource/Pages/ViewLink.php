@@ -15,6 +15,7 @@ class ViewLink extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\EditAction::make()->label('Изменить'),
             Actions\Action::make('qrCode')
                 ->label('QR-код')
                 ->icon('heroicon-o-qr-code')

@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Auth;
 
 class LinkStatsOverview extends StatsOverviewWidget
 {
+    protected static ?int $sort = 2;
+
+    protected int|string|array $columnSpan = 'full';
+
     protected function getStats(): array
     {
         $userId = Auth::id();

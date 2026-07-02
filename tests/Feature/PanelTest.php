@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\LinkResource\Pages\CreateLink;
+use App\Filament\Resources\LinkResource\Pages\EditLink;
 use App\Models\Link;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -63,5 +64,23 @@ class PanelTest extends TestCase
             ->assertOk()
             ->assertSee($ownLink->code)
             ->assertDontSee($foreignLink->code);
+    }
+
+    public function test_user_can_edit_own_link_in_panel(): void
+    {
+        $user = User::factory()->create();
+        $link = Link::factory()->for($user)->create([
+            'original_url' => 'https://example.com/old',
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(EditLink::class, ['record' => $link->getRouteKey()])
+            ->fillForm([
+                'original_url' => 'https://example.com/new',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame('https://example.com/new', $link->fresh()->original_url);
     }
 }

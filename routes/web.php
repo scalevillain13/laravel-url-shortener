@@ -6,7 +6,9 @@ use App\Http\Controllers\RedirectController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
-Route::post('/', [HomeController::class, 'store'])->name('home.store');
+Route::post('/', [HomeController::class, 'store'])
+    ->middleware('throttle:home-store')
+    ->name('home.store');
 
 Route::middleware('auth')->get('/links/{link}/qr', LinkQrCodeController::class)
     ->name('links.qr');

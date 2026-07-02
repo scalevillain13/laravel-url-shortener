@@ -112,4 +112,70 @@ class EnhancementsTest extends TestCase
             'password' => 'password',
         ])->assertOk()->assertJsonStructure(['token']);
     }
+
+    public function test_owner_can_update_link_via_api(): void
+    {
+        $user = User::factory()->create();
+        $link = Link::factory()->for($user)->create([
+            'original_url' => 'https://example.com/old',
+        ]);
+
+        $this->actingAs($user, 'sanctum')
+            ->patchJson('/api/links/'.$link->id, [
+                'original_url' => 'https://example.com/new',
+            ])
+            ->assertOk()
+            ->assertJsonPath('original_url', 'https://example.com/new');
+
+        $this->assertSame('https://example.com/new', $link->fresh()->original_url);
+    }
+
+    public function test_foreign_user_cannot_update_link_via_api(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $link = Link::factory()->for($owner)->create();
+
+        $this->actingAs($other, 'sanctum')
+            ->patchJson('/api/links/'.$link->id, [
+                'original_url' => 'https://intruder.example',
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_api_token_issuance_is_rate_limited(): void
+    {
+        config(['shortener.api_token_rate_limit' => 3]);
+
+        $user = User::factory()->create(['password' => 'password']);
+
+        for ($i = 0; $i < 3; $i++) {
+            $this->postJson('/api/tokens', [
+                'email' => $user->email,
+                'password' => 'wrong-password',
+            ]);
+        }
+
+        $this->postJson('/api/tokens', [
+            'email' => $user->email,
+            'password' => 'wrong-password',
+        ])->assertStatus(429);
+    }
+
+    public function test_home_link_creation_is_rate_limited(): void
+    {
+        config(['shortener.home_store_rate_limit' => 3]);
+
+        $user = User::factory()->create();
+
+        for ($i = 0; $i < 3; $i++) {
+            $this->actingAs($user)->post(route('home.store'), [
+                'original_url' => 'https://example.com/page-'.$i,
+            ]);
+        }
+
+        $this->actingAs($user)->post(route('home.store'), [
+            'original_url' => 'https://example.com/overflow',
+        ])->assertStatus(429);
+    }
 }

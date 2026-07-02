@@ -24,6 +24,16 @@ class AppServiceProvider extends ServiceProvider
                 ->by($request->ip());
         });
 
+        RateLimiter::for('api-tokens', function (Request $request) {
+            return Limit::perMinute((int) config('shortener.api_token_rate_limit', 5))
+                ->by($request->ip());
+        });
+
+        RateLimiter::for('home-store', function (Request $request) {
+            return Limit::perMinute((int) config('shortener.home_store_rate_limit', 10))
+                ->by($request->ip());
+        });
+
         Gate::policy(Link::class, LinkPolicy::class);
     }
 }

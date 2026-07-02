@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Actions\CreateShortLinkAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreLinkRequest;
+use App\Http\Requests\UpdateLinkRequest;
 use App\Models\Link;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -46,6 +47,20 @@ class LinkController extends Controller
                 'clicks_today' => $link->clicks()->whereDate('clicked_at', today())->count(),
             ],
         ]);
+    }
+
+    public function update(UpdateLinkRequest $request, Link $link): JsonResponse
+    {
+        $validated = $request->validated();
+
+        if (array_key_exists('code', $validated) && blank($validated['code'])) {
+            unset($validated['code']);
+        }
+
+        $link->update($validated);
+        $link->loadCount('clicks');
+
+        return response()->json($link);
     }
 
     public function destroy(Request $request, Link $link): JsonResponse

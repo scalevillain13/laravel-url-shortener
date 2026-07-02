@@ -18,6 +18,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | API token issuance rate limit (requests per minute per IP)
+    |--------------------------------------------------------------------------
+    */
+    'api_token_rate_limit' => env('SHORTENER_API_TOKEN_RATE_LIMIT', 5),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Public link creation rate limit (requests per minute per IP)
+    |--------------------------------------------------------------------------
+    */
+    'home_store_rate_limit' => env('SHORTENER_HOME_STORE_RATE_LIMIT', 10),
+
+    /*
+    |--------------------------------------------------------------------------
     | Skip recording clicks from known bots/crawlers
     |--------------------------------------------------------------------------
     */

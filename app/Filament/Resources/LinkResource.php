@@ -54,7 +54,7 @@ class LinkResource extends Resource
                             ->alphaNum()
                             ->minLength(3)
                             ->maxLength(16)
-                            ->rules(fn (): array => StoreLinkRequest::baseRules()['code'])
+                            ->rules(fn (?Link $record): array => StoreLinkRequest::baseRules($record?->id)['code'])
                             ->unique(ignoreRecord: true)
                             ->columnSpanFull(),
                         Forms\Components\Toggle::make('is_active')
@@ -82,31 +82,39 @@ class LinkResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('short_url')
-                    ->label('Короткая')
-                    ->state(fn (Link $record): string => $record->short_url)
+                Tables\Columns\TextColumn::make('code')
+                    ->label('Код')
+                    ->searchable()
                     ->copyable()
+                    ->copyMessage('Короткая ссылка скопирована')
+                    ->copyableState(fn (Link $record): string => $record->short_url)
+                    ->tooltip(fn (Link $record): string => $record->short_url)
                     ->url(fn (Link $record): string => $record->short_url, shouldOpenInNewTab: true),
                 Tables\Columns\TextColumn::make('original_url')
                     ->label('Оригинал')
-                    ->limit(40)
+                    ->limit(28)
                     ->tooltip(fn (Link $record): string => $record->original_url)
-                    ->searchable(),
+                    ->searchable()
+                    ->wrap(),
                 Tables\Columns\IconColumn::make('is_active')
-                    ->label('Активна')
-                    ->boolean(),
+                    ->label('Акт.')
+                    ->boolean()
+                    ->alignCenter()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('clicks_count')
-                    ->label('Переходы')
+                    ->label('Клики')
                     ->badge()
-                    ->sortable(),
+                    ->sortable()
+                    ->alignCenter(),
                 Tables\Columns\TextColumn::make('expires_at')
                     ->label('Истекает')
-                    ->dateTime('d.m.Y H:i')
+                    ->dateTime('d.m.Y')
                     ->placeholder('—')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Создана')
-                    ->dateTime('d.m.Y H:i')
+                    ->dateTime('d.m.Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -134,13 +142,24 @@ class LinkResource extends Resource
             ])
             ->defaultSort('created_at', 'desc')
             ->actions([
-                Tables\Actions\ViewAction::make()->label('Статистика'),
+                Tables\Actions\EditAction::make()
+                    ->label('Изменить')
+                    ->iconButton()
+                    ->tooltip('Изменить'),
+                Tables\Actions\ViewAction::make()
+                    ->label('Статистика')
+                    ->iconButton()
+                    ->tooltip('Статистика'),
                 Tables\Actions\Action::make('qrCode')
                     ->label('QR')
                     ->icon('heroicon-o-qr-code')
+                    ->iconButton()
+                    ->tooltip('QR-код')
                     ->url(fn (Link $record): string => route('links.qr', $record))
                     ->openUrlInNewTab(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->iconButton()
+                    ->tooltip('Удалить'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -187,6 +206,7 @@ class LinkResource extends Resource
             'index' => Pages\ListLinks::route('/'),
             'create' => Pages\CreateLink::route('/create'),
             'view' => Pages\ViewLink::route('/{record}'),
+            'edit' => Pages\EditLink::route('/{record}/edit'),
         ];
     }
 }
