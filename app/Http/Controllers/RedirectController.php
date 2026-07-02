@@ -6,6 +6,7 @@ use App\Actions\ResolveLinkForRedirectAction;
 use App\Jobs\RecordClickJob;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class RedirectController extends Controller
 {
@@ -13,8 +14,12 @@ class RedirectController extends Controller
         Request $request,
         string $code,
         ResolveLinkForRedirectAction $resolveLink,
-    ): RedirectResponse {
+    ): RedirectResponse|Response {
         $link = $resolveLink->execute($code);
+
+        if (! $link->isAccessible()) {
+            abort(410, 'Ссылка недоступна или срок её действия истёк.');
+        }
 
         RecordClickJob::dispatch(
             linkId: $link->id,
@@ -23,6 +28,6 @@ class RedirectController extends Controller
             clickedAt: now()->toIso8601String(),
         );
 
-        return redirect()->away($link->original_url);
+        return redirect()->away($link->redirect_url);
     }
 }

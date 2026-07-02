@@ -19,7 +19,20 @@ class Link extends Model
         'user_id',
         'original_url',
         'code',
+        'is_active',
+        'expires_at',
+        'utm_source',
+        'utm_medium',
+        'utm_campaign',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+            'expires_at' => 'datetime',
+        ];
+    }
 
     protected static function booted(): void
     {
@@ -45,6 +58,7 @@ class Link extends Model
             'livewire',
             'login',
             'register',
+            'up',
         ];
     }
 
@@ -66,6 +80,36 @@ class Link extends Model
     public function getShortUrlAttribute(): string
     {
         return url('/'.$this->code);
+    }
+
+    public function getRedirectUrlAttribute(): string
+    {
+        $params = array_filter([
+            'utm_source' => $this->utm_source,
+            'utm_medium' => $this->utm_medium,
+            'utm_campaign' => $this->utm_campaign,
+        ]);
+
+        if ($params === []) {
+            return $this->original_url;
+        }
+
+        $separator = str_contains($this->original_url, '?') ? '&' : '?';
+
+        return $this->original_url.$separator.http_build_query($params);
+    }
+
+    public function isAccessible(): bool
+    {
+        if (! $this->is_active) {
+            return false;
+        }
+
+        if ($this->expires_at !== null && $this->expires_at->isPast()) {
+            return false;
+        }
+
+        return true;
     }
 
     public static function generateUniqueCode(int $length = 6): string

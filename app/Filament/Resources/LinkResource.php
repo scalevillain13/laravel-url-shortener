@@ -28,9 +28,6 @@ class LinkResource extends Resource
 
     protected static ?string $navigationLabel = 'Мои ссылки';
 
-    /**
-     * Каждый пользователь видит и управляет только своими ссылками.
-     */
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
@@ -42,22 +39,42 @@ class LinkResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('original_url')
-                    ->label('Оригинальный URL')
-                    ->placeholder('https://example.com/page')
-                    ->url()
-                    ->required()
-                    ->maxLength(2048)
-                    ->columnSpanFull(),
-                Forms\Components\TextInput::make('code')
-                    ->label('Код короткой ссылки (необязательно)')
-                    ->helperText('Оставьте пустым — код сгенерируется автоматически.')
-                    ->alphaNum()
-                    ->minLength(3)
-                    ->maxLength(16)
-                    ->rules(fn (): array => (new StoreLinkRequest)->rules()['code'])
-                    ->unique(ignoreRecord: true)
-                    ->columnSpanFull(),
+                Forms\Components\Section::make('Основное')
+                    ->schema([
+                        Forms\Components\TextInput::make('original_url')
+                            ->label('Оригинальный URL (HTTPS)')
+                            ->placeholder('https://example.com/page')
+                            ->url()
+                            ->required()
+                            ->maxLength(2048)
+                            ->columnSpanFull(),
+                        Forms\Components\TextInput::make('code')
+                            ->label('Код (необязательно)')
+                            ->helperText('Оставьте пустым — код сгенерируется автоматически.')
+                            ->alphaNum()
+                            ->minLength(3)
+                            ->maxLength(16)
+                            ->rules(fn (): array => StoreLinkRequest::baseRules()['code'])
+                            ->unique(ignoreRecord: true)
+                            ->columnSpanFull(),
+                        Forms\Components\Toggle::make('is_active')
+                            ->label('Активна')
+                            ->default(true),
+                        Forms\Components\DateTimePicker::make('expires_at')
+                            ->label('Истекает')
+                            ->nullable()
+                            ->minDate(now()),
+                    ])
+                    ->columns(2),
+                Forms\Components\Section::make('UTM-метки')
+                    ->description('Добавляются к URL при переходе по короткой ссылке.')
+                    ->schema([
+                        Forms\Components\TextInput::make('utm_source')->label('utm_source')->maxLength(100),
+                        Forms\Components\TextInput::make('utm_medium')->label('utm_medium')->maxLength(100),
+                        Forms\Components\TextInput::make('utm_campaign')->label('utm_campaign')->maxLength(100),
+                    ])
+                    ->columns(3)
+                    ->collapsed(),
             ]);
     }
 
@@ -66,27 +83,54 @@ class LinkResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('short_url')
-                    ->label('Короткая ссылка')
+                    ->label('Короткая')
                     ->state(fn (Link $record): string => $record->short_url)
-                    ->badge()
-                    ->color('primary')
                     ->copyable()
-                    ->copyMessage('Скопировано!')
                     ->url(fn (Link $record): string => $record->short_url, shouldOpenInNewTab: true),
                 Tables\Columns\TextColumn::make('original_url')
-                    ->label('Оригинальный URL')
-                    ->limit(50)
+                    ->label('Оригинал')
+                    ->limit(40)
                     ->tooltip(fn (Link $record): string => $record->original_url)
                     ->searchable(),
+                Tables\Columns\IconColumn::make('is_active')
+                    ->label('Активна')
+                    ->boolean(),
                 Tables\Columns\TextColumn::make('clicks_count')
                     ->label('Переходы')
                     ->badge()
-                    ->color('success')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('expires_at')
+                    ->label('Истекает')
+                    ->dateTime('d.m.Y H:i')
+                    ->placeholder('—')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Создана')
                     ->dateTime('d.m.Y H:i')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                Tables\Filters\TernaryFilter::make('is_active')->label('Активность'),
+                Tables\Filters\Filter::make('expired')
+                    ->label('Истекшие')
+                    ->query(fn (Builder $query): Builder => $query
+                        ->whereNotNull('expires_at')
+                        ->where('expires_at', '<', now())),
+                Tables\Filters\Filter::make('min_clicks')
+                    ->form([
+                        Forms\Components\TextInput::make('count')
+                            ->label('Мин. переходов')
+                            ->numeric()
+                            ->minValue(0),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (blank($data['count'] ?? null)) {
+                            return $query;
+                        }
+
+                        return $query->has('clicks', '>=', (int) $data['count']);
+                    }),
             ])
             ->defaultSort('created_at', 'desc')
             ->actions([
@@ -115,22 +159,18 @@ class LinkResource extends Resource
                     ->schema([
                         Infolists\Components\TextEntry::make('short_url')
                             ->label('Короткая ссылка')
-                            ->state(fn (Link $record): string => $record->short_url)
-                            ->badge()
-                            ->color('primary')
                             ->copyable()
                             ->url(fn (Link $record): string => $record->short_url, shouldOpenInNewTab: true),
-                        Infolists\Components\TextEntry::make('original_url')
-                            ->label('Оригинальный URL')
-                            ->url(fn (Link $record): string => $record->original_url, shouldOpenInNewTab: true),
+                        Infolists\Components\TextEntry::make('redirect_url')
+                            ->label('URL редиректа (с UTM)')
+                            ->url(fn (Link $record): string => $record->redirect_url, shouldOpenInNewTab: true),
+                        Infolists\Components\IconEntry::make('is_active')->label('Активна')->boolean(),
+                        Infolists\Components\TextEntry::make('expires_at')->label('Истекает')->dateTime('d.m.Y H:i')->placeholder('—'),
                         Infolists\Components\TextEntry::make('clicks_count')
                             ->label('Всего переходов')
                             ->state(fn (Link $record): int => $record->clicks()->count())
-                            ->badge()
-                            ->color('success'),
-                        Infolists\Components\TextEntry::make('created_at')
-                            ->label('Создана')
-                            ->dateTime('d.m.Y H:i'),
+                            ->badge(),
+                        Infolists\Components\TextEntry::make('created_at')->label('Создана')->dateTime('d.m.Y H:i'),
                     ])
                     ->columns(2),
             ]);
@@ -138,9 +178,7 @@ class LinkResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            ClicksRelationManager::class,
-        ];
+        return [ClicksRelationManager::class];
     }
 
     public static function getPages(): array

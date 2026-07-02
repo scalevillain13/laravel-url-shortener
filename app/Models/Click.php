@@ -11,6 +11,9 @@ class Click extends Model
         'link_id',
         'ip_address',
         'user_agent',
+        'country',
+        'city',
+        'is_bot',
         'clicked_at',
     ];
 
@@ -18,6 +21,7 @@ class Click extends Model
     {
         return [
             'clicked_at' => 'datetime',
+            'is_bot' => 'boolean',
         ];
     }
 

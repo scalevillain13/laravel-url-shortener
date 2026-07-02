@@ -28,6 +28,9 @@
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SHORTENER_GEOIP_ENABLED" value="false"/>
+        <env name="SHORTENER_REQUIRE_HTTPS" value="true"/>
+        <env name="SHORTENER_IGNORE_BOTS" value="true"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>

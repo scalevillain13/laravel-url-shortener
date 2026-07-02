@@ -28,18 +28,27 @@ class ClicksRelationManager extends RelationManager
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('ip_address')
-                    ->label('IP-адрес')
+                    ->label('IP')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('user_agent')
-                    ->label('User-Agent')
-                    ->limit(60)
-                    ->tooltip(fn ($record): ?string => $record->user_agent)
+                Tables\Columns\TextColumn::make('country')
+                    ->label('Страна')
+                    ->placeholder('—'),
+                Tables\Columns\TextColumn::make('city')
+                    ->label('Город')
+                    ->placeholder('—')
+                    ->toggleable(),
+                Tables\Columns\IconColumn::make('is_bot')
+                    ->label('Бот')
+                    ->boolean()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('clicked_at')
-                    ->label('Дата и время перехода')
+                    ->label('Дата и время')
                     ->dateTime('d.m.Y H:i:s')
                     ->sortable(),
             ])
+            ->defaultSort('clicked_at', 'desc')
+            ->defaultPaginationPageOption(25)
+            ->paginated([10, 25, 50, 100])
             ->headerActions([
                 Tables\Actions\Action::make('exportCsv')
                     ->label('Экспорт CSV')
@@ -51,7 +60,6 @@ class ClicksRelationManager extends RelationManager
                         return app(ExportClicksToCsvAction::class)->execute($link);
                     }),
             ])
-            ->defaultSort('clicked_at', 'desc')
             ->emptyStateHeading('Переходов пока не было');
     }
 }

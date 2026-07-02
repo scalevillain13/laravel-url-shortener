@@ -16,8 +16,23 @@ class LinkFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'original_url' => fake()->url(),
+            'original_url' => 'https://'.fake()->domainName().'/'.fake()->slug(),
             'code' => Str::random(6),
+            'is_active' => true,
+            'expires_at' => null,
+            'utm_source' => null,
+            'utm_medium' => null,
+            'utm_campaign' => null,
         ];
+    }
+
+    public function inactive(): static
+    {
+        return $this->state(['is_active' => false]);
+    }
+
+    public function expired(): static
+    {
+        return $this->state(['expires_at' => now()->subDay()]);
     }
 }
