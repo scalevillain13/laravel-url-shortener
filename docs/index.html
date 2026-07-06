@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Сокращатель ссылок — Laravel URL Shortener</title>
+    <meta
+      name="description"
+      content="Laravel-приложение для коротких ссылок, аналитики переходов и личного кабинета Filament v3."
+    />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0a0908;
+        --surface: #141210;
+        --text: #faf5ee;
+        --muted: #a39e96;
+        --accent: #f43f5e;
+        --border: rgba(250, 245, 238, 0.1);
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, sans-serif;
+        background: radial-gradient(circle at top, rgba(244, 63, 94, 0.12), transparent 45%), var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 4rem 1.5rem;
+      }
+      .badge {
+        display: inline-block;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 1.25rem;
+      }
+      h1 {
+        font-size: clamp(2rem, 5vw, 2.8rem);
+        letter-spacing: -0.03em;
+        margin-bottom: 0.75rem;
+      }
+      .lead {
+        color: var(--muted);
+        font-size: 1.05rem;
+        margin-bottom: 2rem;
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+      }
+      .card h2 {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--accent);
+        margin-bottom: 0.75rem;
+      }
+      ul { padding-left: 1.1rem; color: var(--muted); }
+      li + li { margin-top: 0.35rem; }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 2rem;
+      }
+      a.btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.75rem 1.25rem;
+        border-radius: 999px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+      a.btn--primary {
+        background: var(--accent);
+        color: #fff;
+      }
+      a.btn--ghost {
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+      .note {
+        margin-top: 2rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <span class="badge">Laravel 13 · Filament v3</span>
+      <h1>Сокращатель ссылок</h1>
+      <p class="lead">
+        Laravel-приложение для создания коротких ссылок, отслеживания переходов и управления ими через личный кабинет.
+      </p>
+
+      <div class="card">
+        <h2>Возможности</h2>
+        <ul>
+          <li>Редирект <code>GET /{code}</code> и асинхронная статистика кликов</li>
+          <li>Filament admin: ссылки, фильтры, UTM, срок жизни</li>
+          <li>REST API на Sanctum, Docker Compose, GitHub Actions CI</li>
+        </ul>
+      </div>
+
+      <div class="actions">
+        <a class="btn btn--primary" href="https://github.com/scalevillain13/laravel-url-shortener">
+          Исходники на GitHub ↗
+        </a>
+      </div>
+
+      <p class="note">
+        Это backend-приложение на Laravel — для демо запустите локально через <code>php artisan serve</code> или Docker Compose.
+        Инструкции в README репозитория.
+      </p>
+    </main>
+  </body>
+</html>
